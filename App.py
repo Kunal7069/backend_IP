@@ -10,13 +10,17 @@ stop_allocation = False
 
 
 desired_ips = [
-    '43.204.22','43.204.25', '43.204.24', '43.204.23', '43.204.28', '43.204.30',  
+    '44.217.59','34.234.191','34.206.122','44.223.188','43.204.22','43.204.25', '43.204.24', '43.204.23', '43.204.28', '43.204.30',  
     '43.205.232', '43.205.113', '43.205.207', '43.205.178', '43.205.126', '43.205.124', '43.205.113', 
     '43.205.208', '43.205.191', '43.205.94', '43.205.228', '43.205.210', '43.205.191', '43.205.120', '43.205.238', '43.205.207', '43.205.110', '43.205.121', 
     '43.205.107', '43.205.123', '43.205.92', '43.205.213', '43.205.217', '43.205.130', '43.205.220', '43.205.194', '43.205.178', 
     '43.205.210', '43.205.111', '43.205.215', '43.205.253', '43.205.49', '43.205.52', '43.205.153', '43.205.50', 
     '43.205.94', '43.205.208', '43.205.217', '43.205.142', '43.205.146'
 ]
+
+def get_first_three_parts(ip_address):
+    print('.'.join(ip_address.split('.')[:3]))
+    return '.'.join(ip_address.split('.')[:3])
 
 def create_elastic_ip(ec2_client):
     global stop_allocation
@@ -35,7 +39,8 @@ def create_elastic_ip(ec2_client):
 
                     print(f"Allocated IP address: {ip_address}")
 
-                    if ip_address == desired_ip:
+                    # Compare the first three parts of the IP addresses
+                    if get_first_three_parts(ip_address) == get_first_three_parts(desired_ip):
                         allocated_ips.append({'ip_address': ip_address, 'status': 'success'})
                         desired_ips.remove(desired_ip)  # Remove allocated IP from list
                         print(f"Desired IP address {desired_ip} has been allocated!")
@@ -51,7 +56,6 @@ def create_elastic_ip(ec2_client):
         return {'status': 'completed' if not desired_ips else 'stopped', 'allocated_ips': allocated_ips}
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
-
 @app.route('/allocate-ip', methods=['POST'])
 def allocate_ip():
     global stop_allocation
