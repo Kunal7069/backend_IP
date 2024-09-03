@@ -78,5 +78,9 @@ def stop_allocation_route():
     stop_allocation = True
     return jsonify({'status': 'stopping process'})
 
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({'status': 'HOME PAGE'})
+
 if __name__ == '__main__':
     app.run(debug=True)
