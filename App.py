@@ -18,6 +18,7 @@ desired_ips = [
 ]
 
 
+
 def get_first_three_parts(ip_address):
     print('.'.join(ip_address.split('.')[:3]))
     return '.'.join(ip_address.split('.')[:3])
