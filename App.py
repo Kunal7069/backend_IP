@@ -32,6 +32,7 @@ def create_elastic_ip_generator(ec2_client):
                 ip_address = response['PublicIp']
                 allocation_id = response['AllocationId']
                 release = 0
+    
                 print(f"Allocated IP address: {ip_address}")
                 yield f"Suggested {ip_address}"
                 for desired_ip in desired_ips:
@@ -47,7 +48,7 @@ def create_elastic_ip_generator(ec2_client):
                     ec2_client.release_address(AllocationId=allocation_id)
                     print(f"Released IP address: {ip_address}")
             except Exception as e:
-                yield f"Error: {str(e)}\n"
+                print(e)
         return {'allocated_ips': allocated_ips}
     except Exception as e:
         yield f"Error: {str(e)}\n"
@@ -56,6 +57,7 @@ def create_elastic_ip_generator(ec2_client):
 
 @app.route('/allocate-ip', methods=['POST'])
 def allocate_ip():
+    
     global stop_allocation
     stop_allocation = False
 
