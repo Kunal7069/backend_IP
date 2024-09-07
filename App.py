@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import boto3
 import os
-
+import time
 app = Flask(__name__)
 CORS(app)
 
@@ -16,44 +16,57 @@ desired_ips = [
     '43.205.210', '43.205.111', '43.205.215', '43.205.253', '43.205.49', '43.205.52', '43.205.153', '43.205.50', 
     '43.205.94', '43.205.208', '43.205.217', '43.205.142', '43.205.146'
 ]
+my_dict = {}
+def manage_elastic_ips(aws_access_key_id,aws_secret_access_key):
+    while not stop_allocation:
+        session = boto3.Session(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            region_name='us-east-1'  
+        )
 
-def get_first_three_parts(ip_address):
-    return '.'.join(ip_address.split('.')[:3])
+        ec2 = session.client('ec2')
+        response = ec2.describe_addresses()
+        elastic_ips = [[address.get('PublicIp'), address.get('AllocationId')] for address in response.get('Addresses', [])]
+        matched_ips = []
 
-def create_elastic_ip_generator(ec2_client):
-    global stop_allocation
-    
-    try:
-        while not stop_allocation:
+        for ip_data in elastic_ips[:]:  
+            public_ip = ip_data[0]
+            ip_prefix = '.'.join(public_ip.split('.')[:3])
+            if ip_prefix in desired_ips:
+                if public_ip in my_dict:
+                    print("HII")
+                else:
+                    print(f"Allocated : {public_ip}")
+                    yield f"Allocated {public_ip}"
+                    my_dict[public_ip]=1
+                matched_ips.append(ip_data)  
+                elastic_ips.remove(ip_data)
 
-            try:
-                
-                response = ec2_client.allocate_address(Domain='vpc')
-                ip_address = response['PublicIp']
-                allocation_id = response['AllocationId']
-                release = 0
-    
-                print(f"Allocated IP address: {ip_address}")
-                yield f"Suggested {ip_address}"
-                for desired_ip in desired_ips:
-                    print("DESIRED IP ADDRESS",desired_ip )
-                    
-                    if get_first_three_parts(ip_address) == get_first_three_parts(desired_ip):
-                        allocated_ips.append({'ip_address': ip_address, 'status': 'success'})
-                        yield f"Allocated {ip_address}"
-                        desired_ips.remove(desired_ip)
-                        release = 1
-                         
-                if release == 0:
-                    ec2_client.release_address(AllocationId=allocation_id)
-                    print(f"Released IP address: {ip_address}")
-            except Exception as e:
-                print(e)
-        return {'allocated_ips': allocated_ips}
-    except Exception as e:
-        yield f"Error: {str(e)}\n"
+        if len(elastic_ips) + len(matched_ips) >= 5:
+            for ip_data in elastic_ips[:]:  
+                ec2.release_address(AllocationId=ip_data[1])   
+            elastic_ips = []  
 
-    
+        while len(elastic_ips) + len(matched_ips) < 5:
+            allocation_response = ec2.allocate_address(Domain='vpc')  # Allocate Elastic IP for VPC
+            new_ip_data = [allocation_response.get('PublicIp'), allocation_response.get('AllocationId')]
+            public_ip = allocation_response.get('PublicIp')
+            ip_prefix = '.'.join(public_ip.split('.')[:3])
+            if ip_prefix in desired_ips:
+                print(f"Allocated : {allocation_response.get('PublicIp')}")
+                yield f"Allocated {allocation_response.get('PublicIp')}"
+                matched_ips.append(new_ip_data)  
+            else:
+                elastic_ips.append(new_ip_data)
+                print(f"Suggested : {allocation_response.get('PublicIp')}")
+                yield f"Suggested {allocation_response.get('PublicIp')}"
+        for ip_data in elastic_ips[:]:  
+            ec2.release_address(AllocationId=ip_data[1])   
+        elastic_ips = []
+        time.sleep(60)
+
+
 
 @app.route('/allocate-ip', methods=['POST'])
 def allocate_ip():
@@ -64,17 +77,8 @@ def allocate_ip():
     data = request.json
     aws_access_key_id = data['aws_access_key_id']
     aws_secret_access_key = data['aws_secret_access_key']
-    region = 'us-east-1'  # You can make this dynamic if needed
-
-    ec2_client = boto3.client(
-        'ec2',
-        region_name=region,
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key
-    )
-
-    # Return the generator that streams IP allocations
-    return Response(create_elastic_ip_generator(ec2_client), content_type='text/plain')
+    
+    return Response(manage_elastic_ips(aws_access_key_id,aws_secret_access_key), content_type='text/plain')
 
 @app.route('/stop', methods=['POST'])
 def stop_allocation_route():
@@ -84,7 +88,7 @@ def stop_allocation_route():
 
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({'status': 'HOME PAGE'})
+    return jsonify({'status': 'BACKEND SERVER IS STARTED'})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
