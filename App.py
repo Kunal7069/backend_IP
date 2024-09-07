@@ -86,9 +86,19 @@ def stop_allocation_route():
     stop_allocation = True
     return jsonify({'status': 'PROCESS STOPPED'})
 
+@app.route('/fetch_regions', methods=['GET'])
+def fetch_regions():
+    session = boto3.session.Session()
+    available_regions = session.get_available_regions('ec2')
+    regions=[]
+    for region in available_regions:
+        regions.append(region)
+    return regions
+
+
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({'status': 'HOME PAGE'})
+    return jsonify({'status': 'BACKEND SERVER IS STARTED'})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
