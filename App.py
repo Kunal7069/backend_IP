@@ -17,12 +17,12 @@ desired_ips = [
     '43.205.94', '43.205.208', '43.205.217', '43.205.142', '43.205.146'
 ]
 my_dict = {}
-def manage_elastic_ips(aws_access_key_id,aws_secret_access_key):
+def manage_elastic_ips(aws_access_key_id,aws_secret_access_key,region_name):
     while not stop_allocation:
         session = boto3.Session(
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
-            region_name='us-east-1'  
+            region_name=region_name
         )
 
         ec2 = session.client('ec2')
@@ -77,8 +77,8 @@ def allocate_ip():
     data = request.json
     aws_access_key_id = data['aws_access_key_id']
     aws_secret_access_key = data['aws_secret_access_key']
-    
-    return Response(manage_elastic_ips(aws_access_key_id,aws_secret_access_key), content_type='text/plain')
+    region_name=data['region_name']
+    return Response(manage_elastic_ips(aws_access_key_id,aws_secret_access_key,region_name), content_type='text/plain')
 
 @app.route('/stop', methods=['POST'])
 def stop_allocation_route():
@@ -88,7 +88,7 @@ def stop_allocation_route():
 
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({'status': 'BACKEND SERVER IS STARTED'})
+    return jsonify({'status': 'HOME PAGE'})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
