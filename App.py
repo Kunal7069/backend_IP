@@ -98,7 +98,7 @@ def fetch_regions():
 
 @app.route('/', methods=['GET'])
 def home():
-    return jsonify({'status': 'BACKEND SERVER IS STARTED'})
+    return jsonify({'status': 'BACKEND SERVER FOR AWS TOOL IS STARTED'})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
