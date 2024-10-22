@@ -3,6 +3,8 @@ from flask_cors import CORS
 import boto3
 import os
 import time
+import threading
+import requests 
 app = Flask(__name__)
 CORS(app)
 
@@ -100,6 +102,25 @@ def fetch_regions():
 def home():
     return jsonify({'status': 'BACKEND SERVER FOR AWS TOOL IS STARTED'})
 
+
+
+def call_api_every_10_seconds():
+        while True:
+            # Replace this URL with the API endpoint you want to call
+            url = 'https://backend-ip-2.onrender.com'
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    print('API call successful:', response.json())
+                else:
+                    print('API call failed with status code:', response.status_code)
+            except Exception as e:
+                print('Error during API call:', e)
+    
+            time.sleep(10)  # Wait for 10 seconds
+    
+    # Start the background thread
+threading.Thread(target=call_api_every_10_seconds, daemon=True).start()
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
